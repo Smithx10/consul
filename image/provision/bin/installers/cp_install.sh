@@ -50,10 +50,15 @@ enableCpSystemD(){
     systemctl enable containerpilot
 }
 
+copyFiles() {
+  cp ${PROVISION_DIR}/etc/containerpilot.json5 /etc
+}
+
 main() {
   setHttpProxy
   setCpVar
   installCp
+  copyFiles
   setupCpSystemD
 }
 main
