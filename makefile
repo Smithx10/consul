@@ -25,7 +25,7 @@ endif
 ifdef folder
 packerVars += -var 'folder_name=${folder}'
 endif
-packerVars += -var 'vsphere_cluster=${vsphere_cluster}' -var 'vsphere_resource_pool=${vsphere_resource_pool}' -var 'vsphere_datastore=${vsphere_datastore}'
+#packerVars += -var 'vsphere_cluster=${vsphere_cluster}' -var 'vsphere_resource_pool=${vsphere_resource_pool}' -var 'vsphere_datastore=${vsphere_datastore}'
 
 ## Display this help message
 help:

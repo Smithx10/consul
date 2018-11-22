@@ -176,8 +176,9 @@
       type: "shell",
       environment_vars: [],
       inline: [
-        "chmod +x /tmp/provision/bin/*",
-        ". /tmp/provision/bin/set_proxy.sh && for i in /tmp/provision/bin/*_install.sh; do $i; done",
+        "chmod +x /tmp/provision/bin/installers/*",
+        "/tmp/provision/bin/installers/yum_package_installs.sh",
+        "for i in /tmp/provision/bin/installers/*_install.sh; do echo \"Running $i \"; $i; done",
         "rm -rf /tmp/provision",
       ]
     },
