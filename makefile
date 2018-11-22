@@ -4,82 +4,70 @@ MAKEFLAGS += --warn-undefined-variables
 .DEFAULT_GOAL := build
 .PHONY: *
 
-# we get these from CI environment if available, otherwise from git
+## We get these from CI environment if available, otherwise from git
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-namespace ?= autopilotpattern
-tag := branch-$(shell basename $(GIT_BRANCH))
-image := $(namespace)/consul
-testImage := $(namespace)/consul-testrunner
+# Other variables
+namespace ?= ""
+tag := $(shell basename $(GIT_BRANCH) | tr A-Z a-z)
+imageName := img-consul-${tag}
+imageVersion := $(shell /bin/date "+%s")
+baseTemplate := img-common-app-master-1532781830
+
+# Terraform variables
+tfVars:= -var "image_name=${imageName}" -var "image_version=${imageVersion}"
+
+# Packer variables
+ifdef target
+packerVars = -only=${target}
+endif
+ifdef folder
+packerVars += -var 'folder_name=${folder}'
+endif
+packerVars += -var 'vsphere_cluster=${vsphere_cluster}' -var 'vsphere_resource_pool=${vsphere_resource_pool}' -var 'vsphere_datastore=${vsphere_datastore}'
 
 ## Display this help message
 help:
-	@awk '/^##.*$$/,/[a-zA-Z_-]+:/' $(MAKEFILE_LIST) | awk '!(NR%2){print $$0p}{p=$$0}' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
+	$(info Available targets)
+	@awk '/^[a-zA-Z\-\_0-9]+:/ {                    \
+	  nb = sub( /^## /, "", helpMsg );              \
+	  if(nb == 0) {                                 \
+	    helpMsg = $$0;                              \
+	    nb = sub( /^[^:]*:.* ## /, "", helpMsg );   \
+	  }                                             \
+	  if (nb)                                       \
+	    print  $$1 "\t" helpMsg;                    \
+	}                                               \
+	{ helpMsg = $$0 }'                              \
+	$(MAKEFILE_LIST) | column -ts $$'\t' |          \
+	grep --color '^[^ ]*'
 
+## Test current environment
+testenv:
+	@which packer > /dev/null 2>&1 && printf "\e[32;1mpacker binary found\e[0m \n" || printf "\e[31;1mpacker binary not found\e[0m \n"
+	@which cfgt > /dev/null 2>&1 && printf "\e[32;1mcfgt binary found\e[0m \n" || printf "\e[31;1mcfgt binary not found\e[0m \n"
+	@which terraform > /dev/null 2>&1 && printf "\e[32;1mterraform binary found\e[0m \n" || printf "\e[31;1mterraform binary not found\e[0m \n"
+	@[[ ! -z "${TF_VAR_vsphere_server}" ]] && printf "\e[32;1mvariable TF_VAR_vsphere_server defined\e[0m \n" || printf "\e[31;1mvariable TF_VAR_vsphere_server not defined\e[0m \n"
+	@[[ ! -z "${TF_VAR_vsphere_user}" ]] && printf "\e[32;1mvariable TF_VAR_vsphere_user defined\e[0m \n" || printf "\e[31;1mvariable TF_VAR_vsphere_user not defined\e[0m \n"
+	@[[ ! -z "${TF_VAR_vsphere_password}" ]] && printf "\e[32;1mvariable TF_VAR_vsphere_password defined\e[0m \n" || printf "\e[31;1mvariable TF_VAR_vsphere_password not defined\e[0m \n"
 
-# ------------------------------------------------
-# Container builds
+build:
+	@cd image ; cfgt -i ./packer.json5 | packer build ${packerVars} -var 'image_name=${imageName}' -var 'image_version=${imageVersion}' -var 'template_name=${baseTemplate}' -
 
-## Builds the application container image locally
-build: build/tester
-	docker build -t=$(image):$(tag) .
+apply-vsphere:
+	@cd vsphere ; terraform init ; terraform apply ${tfVars} -auto-approve .
 
-## Build the test running container
-build/tester:
-	docker build -f test/Dockerfile -t=$(testImage):$(tag) .
+destroy-vsphere:
+	@cd vsphere ; terraform destroy ${tfVars} -force .
 
-## Push the current application container images to the Docker Hub
-push:
-	docker push $(image):$(tag)
-	docker push $(testImage):$(tag)
+apply-aws:
+	@cd aws ; terraform init ; terraform apply ${tfVars} -auto-approve .
 
-## Tag the current images as 'latest' and push them to the Docker Hub
-ship:
-	docker tag $(image):$(tag) $(image):latest
-	docker tag $(testImage):$(tag) $(testImage):latest
-	docker tag $(image):$(tag) $(image):latest
-	docker push $(image):$(tag)
-	docker push $(image):latest
+destroy-aws:
+	@cd aws ; terraform destroy ${tfVars} -force .
 
-
-# ------------------------------------------------
-# Test running
-
-## Pull the container images from the Docker Hub
-pull:
-	docker pull $(image):$(tag)
-
-## Run all integration tests
-test: test/compose test/triton
-
-## Run the integration test runner against Compose locally.
-test/compose:
-	docker run --rm \
-		-e TAG=$(tag) \
-		-e GIT_BRANCH=$(GIT_BRANCH) \
-		--network=bridge \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-w /src \
-		$(testImage):$(tag) /src/compose.sh
-
-## Run the integration test runner. Runs locally but targets Triton.
-test/triton:
-	$(call check_var, TRITON_PROFILE, \
-		required to run integration tests on Triton.)
-	docker run --rm \
-		-e TAG=$(tag) \
-		-e TRITON_PROFILE=$(TRITON_PROFILE) \
-		-e GIT_BRANCH=$(GIT_BRANCH) \
-		-v ~/.ssh:/root/.ssh:ro \
-		-v ~/.triton/profiles.d:/root/.triton/profiles.d:ro \
-		-w /src \
-		$(testImage):$(tag) /src/triton.sh
-
-# runs the integration test above but entirely within your local
-# development environment rather than the clean test rig
-test/triton/dev:
-	./test/triton.sh
+clean: destroy-vsphere destroy-aws
 
 ## Print environment for build debugging
 debug:
@@ -87,8 +75,8 @@ debug:
 	@echo GIT_BRANCH=$(GIT_BRANCH)
 	@echo namespace=$(namespace)
 	@echo tag=$(tag)
-	@echo image=$(image)
-	@echo testImage=$(testImage)
+	@echo image_name=$(imageName)
+	@echo image_version=$(imageVersion)
 
 check_var = $(foreach 1,$1,$(__check_var))
 __check_var = $(if $(value $1),,\

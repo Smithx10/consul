@@ -1,0 +1,204 @@
+// USAGE with unpatched packer: cfgt -i myfile.json5 | packer build -
+// USAGE with patched packer: packer build myfile.json5
+{
+  variables: {
+    // VSPHERE
+    vcenter_username: "{{ env `TF_VAR_vsphere_user` }}",
+    vcenter_password: "{{ env `TF_VAR_vsphere_password` }}",
+    vcenter_server: "{{ env `TF_VAR_vsphere_server` }}",
+
+    // AWS
+    aws_access_key_id: "{{ env `AWS_ACCESS_KEY_ID` }}",
+    aws_secret_access_key: "{{ env `AWS_SECRET_ACCESS_KEY` }}",
+    aws_region: "eu-west-1",
+
+    // Triton configuration
+    triton_account: "{{ env `SDC_ACCOUNT` }}",
+    triton_key_material: "{{ env `SDC_KEY_PATH` }}",
+    triton_key_id: "{{ env `SDC_KEY_ID` }}",
+    triton_url: "{{ env `SDC_URL` }}",
+    source_machine_package: "{{ env `SOURCE_MACHINE_PACKAGE` }}",
+   
+    // DOCKER
+    docker_repo: "{{ env `DOCKER_REPO` }}",
+    docker_username: "{{ env `DOCKER_USERNAME` }}",
+    docker_password: "{{ env `DOCKER_PASSWORD` }}",
+
+    // OTHERS
+    image_name: "img-consul",
+    image_version: "{{ timestamp }}",
+    folder_name: "images",
+    http_proxy: "{{ env `HTTP_PROXY` }}",
+  },
+  builders: [
+    {
+      name: "triton",
+      type: "triton",
+      triton_account: "{{ user `triton_account`}}",
+      triton_url: "{{ user `triton_url` }}",
+      triton_key_material: "{{ user `triton_key_material` }}",
+      triton_key_id: "{{ user `triton_key_id` }}",
+
+      source_machine_name: "{{ user `image_name` }}-{{ user `image_version` }}-builder",
+      source_machine_package: "{{ user `source_machine_package` }}",
+      source_machine_image: "{{ user `template_name` }}",
+      source_machine_networks: [ "17d7aa50-6ad9-4e56-93b7-12dc868fac2a" ],
+      
+      ssh_username: "root",
+      ssh_private_key_file: "{{ user `triton_key_material` }}",
+      
+      insecure_skip_tls_verify: true,
+      image_name: "{{ user `image_name` }}",
+      image_version: "{{ user `image_version` }}"
+    },
+    {
+      name: "vsphere",
+      type: "vsphere-clone",
+
+      //Connection
+      vcenter_server:       "{{ user `vcenter_server` }}",
+      username:             "{{ user `vcenter_username` }}",
+      password:             "{{ user `vcenter_password` }}",
+      insecure_connection:  "true",
+      // datacenter: "string",
+
+      // VM Location
+      vm_name:              "{{ user `image_name` }}-{{ user `image_version` }}",
+      folder:               "{{ user `folder_name` }}",
+      cluster:              "{{ user `vsphere_cluster` }}",
+      resource_pool:        "{{ user `vsphere_resource_pool` }}",
+      datastore:            "{{ user `vsphere_datastore` }}",
+
+      // VM Location (Vsphere-Clone)
+      template:             "{{ user `template_name` }}",
+     // linked_clone: bool,
+
+      // Hardware
+      /*CPUs:                 int,*/
+      CPU_limit:            -1,
+      /*CPU_reservation:      int,*/
+      /*CPU_hot_plug:         int,*/
+      /*RAM:                  int,*/
+      /*RAM_reservation:      int,*/
+      /*RAM_reserve_all:      bool,*/
+      /*RAM_hot_plug:         bool,*/
+      /*disk_size:            int,*/
+      /*NestedHV:             bool,*/
+      /*configuration_parameters: map,*/
+      /*boot_order:           "string"*/
+
+      // Hardware vsphere-iso
+      /*vm_version:           int,*/
+      /*guest_os_type:        "oracleLinux7_64Guest",*/
+      /*disk_controller_type: "string",*/
+      /*disk_thin_provisioned: bool,*/
+      /*network:              "string",*/
+      /*networkd_card:        "string",*/
+      /*usb_controller:       bool,*/
+
+      // Boot ( vsphere-iso only)
+      /*boot_wait: "string",*/
+      /*boot_command: []string,*/
+      /*floppy_dirs: []string,*/
+      /*floppy_files: []string,*/
+      /*floppy_img_path: "string",*/
+      /*iso_paths: []string,*/
+
+
+      //Provision
+      communicator:         "ssh",
+      ssh_username:         "root",
+      ssh_password:         "rootroot",
+      /*ssh_private_key_file: "string",*/
+      /*winrm_username:       "string",*/
+      /*winrm_password:       "string",*/
+      /*shutdown_command:     "string",*/
+      /*shutdown_timeout:     "string",*/
+
+      // Postprocessing
+      /*create_snapshot:      bool,*/
+      convert_to_template:  true,
+    },
+    {
+      name: "aws",
+      type: "amazon-ebs",
+
+      access_key: "{{ user `aws_access_key_id` }}",
+      secret_key: "{{ user `aws_secret_access_key` }}",
+      region: "{{ user `aws_region` }}",
+
+      "instance_type": "t2.micro",
+      "source_ami_filter": {
+        "filters": {
+          "name": "{{ user `template_name` }}"
+        },
+        "most_recent": true
+      },
+      run_tags: {
+        Name: "Packer Builder - {{ user `image_name` }}-{{ user `image_version` }}"
+      },
+      run_volume_tags: {
+        Name: "Packer Builder - {{ user `image_name` }}-{{ user `image_version` }}",
+      },
+      "ami_name": "{{ user `image_name` }}-{{ user `image_version` }}",
+      tags: {
+        Name: "{{ user `image_name` }}-{{ user `image_version` }}",
+        BuildTime: "{{ isotime }}",
+        Folder: "{{ user `folder_name` }}"
+      },
+      "ssh_username": "root"
+    },
+    {
+      type: "docker",
+      name: "docker",
+      image: "{{ user `template_name` }}",
+      commit: true,
+      login: true,
+      login_server: "{{ user `docker_repo` }}",
+      login_username: "{{ user `docker_username` }}",
+      login_password: "{{ user `docker_password` }}",
+      pull: true
+    }
+  ],
+  provisioners: [
+    {
+      type: "shell",
+      inline: [
+        "mkdir -p /tmp/provision"
+      ]
+    },
+    {
+      type: "file",
+      source: "./provision",
+      destination: "/tmp"
+    },
+    {
+      type: "shell",
+      environment_vars: [],
+      inline: [
+        "chmod +x /tmp/provision/bin/*",
+        ". /tmp/provision/bin/set_proxy.sh && for i in /tmp/provision/bin/*_install.sh; do $i; done",
+        "rm -rf /tmp/provision",
+      ]
+    },
+  ],
+  "post-processors":
+  [
+    [
+      {
+        type: "docker-tag",
+        repository: "{{ user `docker_repo` }}/{{ user `image_name` }}",
+        tag: "{{ user `image_version` }}",
+        only: [ "docker" ]
+      },
+      {
+        type: "docker-push",
+        login: true,
+        login_server: "{{ user `docker_repo` }}",
+        login_username: "{{ user `docker_username` }}",
+        login_password: "{{ user `docker_password` }}",
+        only: [ "docker" ]
+      }
+    ]
+  ]
+}

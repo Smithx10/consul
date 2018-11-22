@@ -1,0 +1,4 @@
+file:
+  /etc/containerpilot.json5:
+    exists: true
+    filetype: file

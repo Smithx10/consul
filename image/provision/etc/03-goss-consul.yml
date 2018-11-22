@@ -1,0 +1,9 @@
+file:
+  /etc/consul/consul.json:
+    exists: true
+    filetype: file
+
+  /usr/local/bin/consul-manage:
+    exists: true
+    mode: "0755"
+    filetype: file

@@ -1,0 +1,32 @@
+{
+  "bind_addr": "0.0.0.0",
+  "client_addr": "0.0.0.0",
+  "datacenter": "CONSUL_DATACENTER_NAME",
+  "ports": {
+    "dns": 53,
+    "serf_lan": CONSUL_SERF_LAN_PORT,
+    "serf_wan": CONSUL_SERF_WAN_PORT
+  },
+  "data_dir": "/data",
+  "enable_debug": false,
+  "enable_syslog": false,
+  "recursors": [
+    "8.8.8.8",
+    "8.8.4.4"
+  ],
+  "disable_update_check": true,
+  "telemetry": {
+    "prometheus_retention_time": "20s",
+    "disable_hostname": true
+  },
+  "dns_config": {
+    "allow_stale": true,
+    "max_stale": "2s",
+    "node_ttl": "10s",
+    "service_ttl": {
+      "*": "10s"
+    },
+    "enable_truncate": false,
+    "only_passing": false
+  }
+}

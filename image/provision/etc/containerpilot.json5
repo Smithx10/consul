@@ -1,0 +1,69 @@
+{
+  consul: "127.0.0.1:8500",
+  jobs: [
+    {
+      name: "preStart",
+      exec: [
+        "/usr/local/bin/consul-manage", 
+        "preStart"
+      ]
+    },
+    {{ if .NODE_EXPORTER }}{
+      name: "metrics",
+      port: 9100,
+      exec: "/usr/local/bin/app-manage runNodeExporter",
+      health: {
+        exec: "/usr/local/bin/app-manage nodeExporterHealth",
+        interval: 10,
+        ttl: 20
+      }
+    },{{ end }}
+    {
+      name: "consul-metrics",
+      port: 8500,
+      when: {
+        source: "consul",
+        once: "healthy"
+      },
+      health: {
+        exec: "/usr/local/bin/app-manage consulMetricsHealth",
+        interval: 10,
+        ttl: 20
+      }
+    },
+    {
+      name: "consul",
+      port: 8500,
+      {{ if .CONSUL_DEV }}exec: [
+        "/usr/local/bin/consul", "agent",
+        "-dev",
+        "-config-dir=/etc/consul"],
+      {{ else }}exec: [
+        "/usr/local/bin/consul", "agent",
+        "-server",
+        "-bind={{`{{  GetAllInterfaces | sort \"default\" | limit 1 | attr \"address\" }}`}}",
+        "-bootstrap-expect", {{ if .CONSUL_BOOTSTRAP_EXPECT }}{{ .CONSUL_BOOTSTRAP_EXPECT }}{{ else }}3{{ end }},
+        "-disable-host-node-id=true",
+        "-config-dir=/etc/consul",
+        "-ui"],{{ end }}
+      when: {
+        source: "preStart",
+        once: "exitSuccess"
+      },
+      health:{
+        exec: ["/usr/local/bin/consul-manage", "health"],
+        interval: 10,
+        ttl: 20
+      },
+      stopTimeout: "5s"
+    },
+    {
+      name: "preStop",
+      exec: ["consul", "leave"],
+      when: {
+        source: "consul",
+        once: "stopping"
+      }
+    }
+  ]
+}
