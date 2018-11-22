@@ -1,0 +1,12 @@
+[Unit]
+Description=common-app-init
+After=network.target auditd.service ntpdate.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/common-app-init start
+ExecReload=/usr/local/bin/common-app-init reload
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,87 @@
+file:
+  /etc/consul:
+    exists: true
+    filetype: directory
+
+  /var/lib/consul:
+    exists: true
+    filetype: directory
+
+  /data:
+    exists: true
+    filetype: directory
+
+  /config/consul.json:
+    exists: true
+    filetype: file
+
+  /etc/dnsmasq.d/10-consul.ctmpl:
+    exists: true
+    filetype: file
+
+  /usr/local/lib/common-app.sh:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/app-manage:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/consul:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/consul-template:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/ip-detect:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/containerpilot:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/common-app-init:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/jq:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/node_exporter:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /usr/local/bin/su-exec:
+    exists: true
+    mode: "0755"
+    filetype: file
+
+  /var/containerpilot:
+    exists: true
+    filetype: directory
+
+service:
+  common-app-init:
+    enabled: true
+    running: false
+
+  containerpilot:
+    enabled: true
+    running: false
+
+  dnsmasq:
+    enabled: true
+    running: false

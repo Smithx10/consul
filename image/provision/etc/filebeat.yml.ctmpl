@@ -1,0 +1,11 @@
+filebeat.config.prospectors:
+  enabled: true
+  path: /usr/share/filebeat/prospectors/*.yml
+  reload.enabled: true
+  reload.period: 10s
+
+exclude_files: ["stdout.logrotate.state", "stdout.logrotate.conf", "stderr.logrotate.state", "stderr.logrotate.conf"]
+tail_files: true
+output.logstash:
+  hosts: [ {{ range $index, $service := service "logstash-filebeat" }}{{ if ne $index 0 }}, {{ end }}"{{ $service.Address }}:{{ $service.Port }}"{{ end }} ]
+  loadbalance: true
