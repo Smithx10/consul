@@ -66,9 +66,6 @@ preStart() {
 
     # advertise_addr_wan tells nodes their public address for WAN communication
     updateConfigFromEnvOrDefault 'advertise_addr_wan'   'CONSUL_ADVERTISE_ADDR_WAN' "$IP_ADDRESS"
-    if ! assertDocker; then
-      ntpdCheck
-    fi
 }
 
 #

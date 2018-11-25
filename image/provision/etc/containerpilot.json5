@@ -41,7 +41,7 @@
       {{ else }}exec: [
         "/usr/local/bin/consul", "agent",
         "-server",
-        "-bind={{`{{  GetAllInterfaces | sort \"default\" | limit 1 | attr \"address\" }}`}}",
+        "-bind={{`{{  GetAllInterfaces | include \"network\" \"192.168.10.0/22\" | attr \"address\" }}`}}",
         "-bootstrap-expect", {{ if .CONSUL_BOOTSTRAP_EXPECT }}{{ .CONSUL_BOOTSTRAP_EXPECT }}{{ else }}3{{ end }},
         "-disable-host-node-id=true",
         "-config-dir=/etc/consul",

@@ -56,171 +56,171 @@ createEnvFile() {
 }
 
 # Set hostname with user-data
-setHostName() {
-  if [[ ! -f ${USER_DATA_FILE} ]]; then
-    _log "No user-data file to process"
-    return 1
-  fi
+#setHostName() {
+  #if [[ ! -f ${USER_DATA_FILE} ]]; then
+    #_log "No user-data file to process"
+    #return 1
+  #fi
 
-  local instance_name=$(cat ${USER_DATA_FILE} | jq -r .env_vars.INSTANCE_NAME)
-  local domain=$(cat ${USER_DATA_FILE} | jq -r .env_vars.DOMAIN)
+  #local instance_name=$(cat ${USER_DATA_FILE} | jq -r .env_vars.INSTANCE_NAME)
+  #local domain=$(cat ${USER_DATA_FILE} | jq -r .env_vars.DOMAIN)
 
-  assertVariable instance_name
-  assertVariable domain
+  #assertVariable instance_name
+  #assertVariable domain
 
-  _log "Attempting to set hostname: "${instance_name}"."${domain}""
-  echo "${instance_name}.${domain}" > /etc/hostname
-  echo "HOSTNAME=${instance_name}.${domain}" >> /etc/sysconfig/network
-  hostnamectl set-hostname "${instance_name}.${domain}"
-}
+  #_log "Attempting to set hostname: "${instance_name}"."${domain}""
+  #echo "${instance_name}.${domain}" > /etc/hostname
+  #echo "HOSTNAME=${instance_name}.${domain}" >> /etc/sysconfig/network
+  #hostnamectl set-hostname "${instance_name}.${domain}"
+#}
 
 # Set root authorized keys with user-data
-setAuthorizedUsers() {
-  if [[ ! -f ${USER_DATA_FILE} ]]; then
-    _log "No user-data file to process"
-    return 1
-  fi
+#setAuthorizedUsers() {
+  #if [[ ! -f ${USER_DATA_FILE} ]]; then
+    #_log "No user-data file to process"
+    #return 1
+  #fi
 
-  # Populate authorized_keys with values in user-data
-  if ! [[ -f /root/.ssh/authorized_keys ]]; then
-    mkdir -p /root/.ssh
-  fi
+  ## Populate authorized_keys with values in user-data
+  #if ! [[ -f /root/.ssh/authorized_keys ]]; then
+    #mkdir -p /root/.ssh
+  #fi
 
-  if [[ -f ${USER_DATA_FILE} ]]; then
-    touch /root/.ssh/authorized_keys
-    authorized_keys=$(echo $(cat ${USER_DATA_FILE}) | jq -r '.root_authorized_keys')
-    if [[ "${authorized_keys}" != "" ]]; then
-      echo -e "${authorized_keys}" | while read key; do
-        if [[ "$(grep "${key}" /root/.ssh/authorized_keys)" == "" ]]; then
-          _log "Adding SSH key ($(echo -n ${key} | cut -d" " -f3)) in authorized_keys"
-          echo ${key} >> /root/.ssh/authorized_keys
-        else
-          _log "SSH key ($(echo -n ${key} | cut -d" " -f3)) already in authorized_keys"
-        fi
-      done
-    fi
-  fi
-}
+  #if [[ -f ${USER_DATA_FILE} ]]; then
+    #touch /root/.ssh/authorized_keys
+    #authorized_keys=$(echo $(cat ${USER_DATA_FILE}) | jq -r '.root_authorized_keys')
+    #if [[ "${authorized_keys}" != "" ]]; then
+      #echo -e "${authorized_keys}" | while read key; do
+        #if [[ "$(grep "${key}" /root/.ssh/authorized_keys)" == "" ]]; then
+          #_log "Adding SSH key ($(echo -n ${key} | cut -d" " -f3)) in authorized_keys"
+          #echo ${key} >> /root/.ssh/authorized_keys
+        #else
+          #_log "SSH key ($(echo -n ${key} | cut -d" " -f3)) already in authorized_keys"
+        #fi
+      #done
+    #fi
+  #fi
+#}
 
-checkForMount(){
-  local disk=$1
-  local partition=$2
+#checkForMount(){
+  #local disk=$1
+  #local partition=$2
 
-  local disktest=$(mount | cut -d" " -f1 | grep -c "${disk}")
-  local partitiontest=$(mount | cut -d" " -f3 | grep -c "${partition}")
-  local globaltest=0
+  #local disktest=$(mount | cut -d" " -f1 | grep -c "${disk}")
+  #local partitiontest=$(mount | cut -d" " -f3 | grep -c "${partition}")
+  #local globaltest=0
 
-  if [[ ${disktest} -eq 0 ]]; then
-    _log "Disk ${disk} is not currently mounted"
-  else
-    _log "Disk ${disk} is already mounted"
-    globaltest=1
-  fi
+  #if [[ ${disktest} -eq 0 ]]; then
+    #_log "Disk ${disk} is not currently mounted"
+  #else
+    #_log "Disk ${disk} is already mounted"
+    #globaltest=1
+  #fi
 
-  if [[ ${partitiontest} -eq 0 ]]; then
-    _log "Partition ${partition} is not currently mounted"
-  else
-    _log "Partition ${partition} is already mounted"
-    globaltest=1
-  fi
+  #if [[ ${partitiontest} -eq 0 ]]; then
+    #_log "Partition ${partition} is not currently mounted"
+  #else
+    #_log "Partition ${partition} is already mounted"
+    #globaltest=1
+  #fi
 
-  return ${globaltest}
-}
+  #return ${globaltest}
+#}
 
-formatDiskAndMount() {
-  local disk=$1
-  local partition=$2
+#formatDiskAndMount() {
+  #local disk=$1
+  #local partition=$2
 
-  if ! (${WIPEFS} ${disk} | grep -q xfs) && ! (${WIPEFS} ${disk} | grep -q UUID); then
-    _log "Creating xfs filesystem on ${disk}"
-    if [[ -e ${disk} ]] ; then
-       ${MKFS} -f ${disk} 2>/dev/null >/dev/null
-       _log "Created xfs filesystem on ${disk}"
-    else
-       _log "${disk} not found, did not create xfs filesystem"
-       return 1
-    fi
-  fi
+  #if ! (${WIPEFS} ${disk} | grep -q xfs) && ! (${WIPEFS} ${disk} | grep -q UUID); then
+    #_log "Creating xfs filesystem on ${disk}"
+    #if [[ -e ${disk} ]] ; then
+       #${MKFS} -f ${disk} 2>/dev/null >/dev/null
+       #_log "Created xfs filesystem on ${disk}"
+    #else
+       #_log "${disk} not found, did not create xfs filesystem"
+       #return 1
+    #fi
+  #fi
 
-  # Check for ${partition} and make it
-  if [[ ! -e ${partition} ]]; then
-    _log "Making ${partition} dir mount point"
-    mkdir -p ${partition}
-  fi
+  ## Check for ${partition} and make it
+  #if [[ ! -e ${partition} ]]; then
+    #_log "Making ${partition} dir mount point"
+    #mkdir -p ${partition}
+  #fi
 
-  # Add entry to fstab so data disk is mounted on reboot
-  if ! grep -q "${disk}" /etc/fstab; then
-    _log "Adding fstab entry for ${disk}"
-    printf "${disk}\t\t${partition}\t\t\txfs\tdefaults\t0 0\n" >> /etc/fstab
-  fi
+  ## Add entry to fstab so data disk is mounted on reboot
+  #if ! grep -q "${disk}" /etc/fstab; then
+    #_log "Adding fstab entry for ${disk}"
+    #printf "${disk}\t\t${partition}\t\t\txfs\tdefaults\t0 0\n" >> /etc/fstab
+  #fi
 
-  if ! checkForMount ${disk} ${partition}; then
-    _log "Disk ${disk} is correctly formated and/or mounted"
-    return 0
-  else
-    # Mount the data disk
-    _log "Mounting ${disk} on ${partition}"
-    mount ${partition}
-  fi
-}
+  #if ! checkForMount ${disk} ${partition}; then
+    #_log "Disk ${disk} is correctly formated and/or mounted"
+    #return 0
+  #else
+    ## Mount the data disk
+    #_log "Mounting ${disk} on ${partition}"
+    #mount ${partition}
+  #fi
+#}
 
-setExternalDisks() {
-  local disks_count=$(cat ${USER_DATA_FILE} | jq -cr '.disks | length')
+#setExternalDisks() {
+  #local disks_count=$(cat ${USER_DATA_FILE} | jq -cr '.disks | length')
 
-  if [[ ${disks_count} -eq 0 ]]; then
-    _log "No disks found to format and to mount"
-    return 0
-  fi
+  #if [[ ${disks_count} -eq 0 ]]; then
+    #_log "No disks found to format and to mount"
+    #return 0
+  #fi
 
-  if [[ -z "${SFDISK}" ]]; then
-    _log "Sfdisk binary not found"
-    return 1
-  fi
+  #if [[ -z "${SFDISK}" ]]; then
+    #_log "Sfdisk binary not found"
+    #return 1
+  #fi
 
-  if [[ -z "${PARTED}" ]]; then
-    _log "Parted binary not found"
-    return 1
-  fi
+  #if [[ -z "${PARTED}" ]]; then
+    #_log "Parted binary not found"
+    #return 1
+  #fi
 
-  if [[ -z "${MKFS}" ]]; then
-    _log "mkfs.xfs binary not found"
-    return 1
-  fi
+  #if [[ -z "${MKFS}" ]]; then
+    #_log "mkfs.xfs binary not found"
+    #return 1
+  #fi
 
-  if [[ -z "${WIPEFS}" ]]; then
-    _log "wipefs binary not found"
-    return 1
-  fi
+  #if [[ -z "${WIPEFS}" ]]; then
+    #_log "wipefs binary not found"
+    #return 1
+  #fi
 
-  for ((i=0;i < ${disks_count};i++)); do
-    local device=$(cat ${USER_DATA_FILE} | jq -cr .disks[$i].device)
-    local mountpoint=$(cat ${USER_DATA_FILE} | jq -cr .disks[$i].mountpoint)
+  #for ((i=0;i < ${disks_count};i++)); do
+    #local device=$(cat ${USER_DATA_FILE} | jq -cr .disks[$i].device)
+    #local mountpoint=$(cat ${USER_DATA_FILE} | jq -cr .disks[$i].mountpoint)
 
-    if [[ -z "${device}" ]]; then
-      _log "Device not specified"
-      continue
-    fi
+    #if [[ -z "${device}" ]]; then
+      #_log "Device not specified"
+      #continue
+    #fi
 
-    if [[ -z "${mountpoint}" ]]; then
-      _log "Mountpoint not specified"
-      continue
-    fi
+    #if [[ -z "${mountpoint}" ]]; then
+      #_log "Mountpoint not specified"
+      #continue
+    #fi
 
-    if [[ ! -e "${device}" ]]; then
-      _log "Device ${device} not found"
-      continue
-    fi
+    #if [[ ! -e "${device}" ]]; then
+      #_log "Device ${device} not found"
+      #continue
+    #fi
 
-    formatDiskAndMount "${device}" "${mountpoint}"
-  done
-}
+    #formatDiskAndMount "${device}" "${mountpoint}"
+  #done
+#}
 
 start() {
   getUserData
   createEnvFile
-  setHostName
-  setAuthorizedUsers
-  setExternalDisks
+  #setHostName
+  #setAuthorizedUsers
+  #setExternalDisks
 }
 
 reload() {

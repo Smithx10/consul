@@ -42,15 +42,12 @@ installConsul() {
   if ! [[ -d /data ]]; then
       mkdir /data
   fi
-
-  if ! [[ -d /config ]]; then
-      mkdir /config
-  fi
 }
 
 # Copy configuration files to the system
 copyFiles() {
-  cp ${PROVISION_DIR}/etc/consul.json /config/consul.json
+  cp ${PROVISION_DIR}/etc/consul.json /etc/consul/consul.json
+  cp ${PROVISION_DIR}/bin/consul-manage /usr/local/bin/consul-manage
 }
 
 main() {

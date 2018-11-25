@@ -86,14 +86,14 @@ setHttpProxy() {
 }
 
 # Check if time is correctly synchronised
-ntpdCheck() {
-  while ! ntpstat | grep "synchronised to NTP server"; do
-    _log "ntp is unsyncronised, restarting ntpd"
-    systemctl restart ntpd
-    sleep 9
-  done
-    _log "ntp is already synced, taking no action. Please stay synced for the love of my sanity!"
-}
+#ntpdCheck() {
+  #while ! ntpstat | grep "synchronised to NTP server"; do
+    #_log "ntp is unsyncronised, restarting ntpd"
+    #systemctl restart ntpd
+    #sleep 9
+  #done
+    #_log "ntp is already synced, taking no action. Please stay synced for the love of my sanity!"
+#}
 
 # Standard Bash Logging
 _log() {

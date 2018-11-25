@@ -41,69 +41,6 @@ consulAgentHealth () {
     fi
 }
 
-# Template CNTLM configuration
-preCntlm() {
-  if ! assertAWS; then
-    _log "Setting default values for cntlm in consul"
-    cat /etc/env_vars | grep CNTLM_CFG | awk -F= -v q="'" '{ if ( system( "consul kv get cntlm/config/"$1"" )) { system( "consul kv put cntlm/config/"$1" "q$2q)} }'
-
-    _log "Injecting cntlm port into containerpilot"
-    cntlm_port="$(consul kv get cntlm/config/CNTLM_CFG_PORT)"
-    containerpilot -putenv "CNTLM_CFG_PORT=${cntlm_port}"
-
-    DOCKER0_IP_ADDR=""
-    if [[ $(which docker 2>/dev/null) ]]; then
-      _log "Get the docker0 IP"
-      while [[ $(ipDetect docker0) == "" ]]; do
-        sleep 1
-      done
-      export DOCKER0_IP_ADDR=$(ipDetect docker0)
-      _log "Docker0 IP found ... ${DOCKER0_IP_ADDR}"
-    fi
-
-    _log "Rendering /etc/cntlm.conf.ctmpl -> /etc/cntlm.conf"
-    consul-template \
-      -once \
-      -consul-addr http://${CONSUL}:8500 \
-      -template "/etc/cntlm.conf.ctmpl:/etc/cntlm.conf"
-  fi
-}
-
-# Start CNTLM
-startCntlm() {
-  /usr/sbin/cntlm -f -c /etc/cntlm.conf -U cntlm -P /run/cntlm/cntlmd.pid
-}
-
-# CNTLM Health Check
-cntlmHealth() {
-  local port=$1
-  timeout 5 bash -c "</dev/tcp/127.0.0.1/${port}"; return $?
-}
-
-watchCntlmConf() {
-  if ! assertAWS; then
-    _log "Injecting cntlm port into containerpilot"
-    cntlm_port="$(consul kv get cntlm/config/CNTLM_CFG_PORT)"
-    containerpilot -putenv "CNTLM_CFG_PORT=${cntlm_port}"
-
-    DOCKER0_IP_ADDR=""
-    if [[ $(which docker 2>/dev/null) ]]; then
-      _log "Get the docker0 IP"
-      while [[ $(ipDetect docker0) == "" ]]; do
-        sleep 1
-      done
-      export DOCKER0_IP_ADDR=$(ipDetect docker0)
-      _log "Docker0 IP found ... ${DOCKER0_IP_ADDR}"
-    fi
-
-    _log "Watching cntlm config from consul"
-    consul-template \
-      -consul-addr http://${CONSUL}:8500 \
-      -template "/etc/cntlm.conf.ctmpl:/etc/cntlm.conf:containerpilot -reloadjob 'cntlm'"
-#      -template "/etc/cntlm.conf.ctmpl:/etc/cntlm.conf:systemctl restart cntlm"
-#      -template "/etc/cntlm.conf.ctmpl:/etc/cntlm.conf:kill $(cat /run/cntlm/cntlmd.pid)"
-  fi
-}
 
 # Run Node Exporter
 runNodeExporter() {
