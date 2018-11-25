@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: consul
+    matchExpressions:
+      - {key: app, operator: In, values: [consul]}
+  template:
+    metadata:
+      annotations:
+        package: sample-512M
+        networks: "a0ae9499-b476-4fef-9861-d0c25029378d,17d7aa50-6ad9-4e56-93b7-12dc868fac2a"
+        affinity: container==bastion
+        fwgroup: consul
+        fwenabled: "true"
+      labels:
+        app: consul
+        triton.cns.services: consul
+    spec:
+      restartPolicy: Always
+      containers:
+      - image: c239a01f-5fe9-456f-8f92-53f5b7efd53d
+        name: consul
+        ports:
+          - containerPort: 8500
+            protocol: TCP
+            name: consul
+          - containerPort: 22
+            name: ssh
+        env:
+          - name: CONTAINERPILOT
+            value: "/etc/containerpilot.json5"
+          - name: CONSUL_AGENT 
+            value: "1"
+          - name: CONSUL_BOOTSTRAP_EXPECT
+            value: "5"
+          - name: CONSUL
+            value: "consul-demo.consul.svc.smith.us-east-1.cns.smithp4ntz.us"
+          - name: NODE_EXPORTER
+            value: "1"
+        readinessProbe:
+          httpGet:
+            path: /ui
+            port: 8500
+          initialDelaySeconds: 3
+          periodSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /ui
+            port: 8500
+          initialDelaySeconds: 3
+          periodSeconds: 2
+        #livenessProbe:
+          #tcpSocket:
+            #port: 22
+          #initialDelaySeconds: 10
+          #periodSeconds: 5
+      nodeSelector:
+        kubernetes.io/role: agent
+        beta.kubernetes.io/os: linux
+        type: virtual-kubelet
+      tolerations:
+      - key: virtual-kubelet.io/provider
+        operator: Exists
