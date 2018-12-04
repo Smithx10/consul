@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: consul
 spec:
-  replicas: 5
+  replicas: 3
   selector:
     matchLabels:
       app: consul
@@ -12,11 +12,13 @@ spec:
   template:
     metadata:
       annotations:
-        package: sample-512M
-        networks: "a0ae9499-b476-4fef-9861-d0c25029378d,17d7aa50-6ad9-4e56-93b7-12dc868fac2a"
-        affinity: container==bastion
-        fwgroup: consul
+        package: 9cd95f47-11ea-4f61-c323-fe526fc1c544
+        networks: "a0ae9499-b476-4fef-9861-d0c25029378d, 17d7aa50-6ad9-4e56-93b7-12dc868fac2a"
+        fwgroup: "consul"
         fwenabled: "true"
+        affinity: "role!=consul"
+        foo: bar
+        bar: baz
       labels:
         app: consul
         triton.cns.services: consul
@@ -31,29 +33,52 @@ spec:
             name: consul
           - containerPort: 22
             name: ssh
+        envFrom:
+          - configMapRef:
+              name: myconfig
         env:
-          - name: CONTAINERPILOT
-            value: "/etc/containerpilot.json5"
-          - name: CONSUL_AGENT 
-            value: "1"
-          - name: CONSUL_BOOTSTRAP_EXPECT
-            value: "5"
-          - name: CONSUL
-            value: "consul-demo.consul.svc.smith.us-east-1.cns.smithp4ntz.us"
-          - name: NODE_EXPORTER
-            value: "1"
+        - name: SECRET_USERNAME
+          valueFrom:
+           secretKeyRef:
+              name: bob
+              key: username
+        - name: SECRET_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: bob
+              key: password
+        - name: FOO
+          valueFrom:
+            configMapKeyRef:
+              name: consul-config
+              key: foo
+        - name: CONFIG_VAR
+          valueFrom:
+            configMapKeyRef:
+              name: consul-config
+              key: consul-config  
+        - name: CONTAINERPILOT
+          value: "/etc/containerpilot.json5"
+        - name: CONSUL_AGENT 
+          value: "1"
+        - name: CONSUL_BOOTSTRAP_EXPECT
+          value: "3"
+        - name: CONSUL
+          value: "consul-demo.consul.svc.smith.us-east-1.cns.smithp4ntz.us"
+        - name: NODE_EXPORTER
+          value: "1"
         readinessProbe:
           httpGet:
             path: /ui
             port: 8500
-          initialDelaySeconds: 3
-          periodSeconds: 2
+          initialDelaySeconds: 30
+          periodSeconds: 15
         livenessProbe:
           httpGet:
             path: /ui
             port: 8500
-          initialDelaySeconds: 3
-          periodSeconds: 2
+          initialDelaySeconds: 60
+          periodSeconds: 15
         #livenessProbe:
           #tcpSocket:
             #port: 22
