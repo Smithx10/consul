@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: consul
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: consul
@@ -35,23 +35,18 @@ spec:
             name: ssh
         envFrom:
           - configMapRef:
-              name: myconfig
+              name: consul-config
         env:
         - name: SECRET_USERNAME
           valueFrom:
            secretKeyRef:
-              name: bob
+              name: mysecret
               key: username
         - name: SECRET_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: bob
+              name: mysecret
               key: password
-        - name: FOO
-          valueFrom:
-            configMapKeyRef:
-              name: consul-config
-              key: foo
         - name: CONFIG_VAR
           valueFrom:
             configMapKeyRef:
@@ -77,7 +72,7 @@ spec:
           httpGet:
             path: /ui
             port: 8500
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 15
         #livenessProbe:
           #tcpSocket:
