@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul-d
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consul-d
+    matchExpressions:
+      - {key: app, operator: In, values: [consul-d]}
+  template:
+    metadata:
+      annotations:
+        type : docker
+        package: 9cd95f47-11ea-4f61-c323-fe526fc1c544
+        private_network: "consul_demo"
+        public_network: "sdc_nat"
+        fwgroup: "consul"
+        affinity: "affinity:role!=consul"
+        foo: bar
+        bar: baz
+      labels:
+        app: consul-d
+        triton.cns.services: consul-d
+    spec:
+      restartPolicy: Always
+      containers:
+      - image: iqvia/consul:latest
+        name: consul-d
+        command: ["containerpilot", "-config"]
+        args: ["/etc/containerpilot.json5"]
+        ports:
+          - containerPort: 8300
+            protocol: UDP
+          - containerPort: 8500
+            protocol: TCP
+            name: consul
+          - containerPort: 22
+            name: ssh
+        #envFrom:
+          #- configMapRef:
+              #name: nothere
+        env:
+        - name: CONTAINERPILOT
+          value: "/etc/containerpilot.json5"
+        - name: CONSUL_AGENT 
+          value: "1"
+        - name: CONSUL_BOOTSTRAP_EXPECT
+          value: "3"
+        - name: CONSUL
+          value: "consul-demo.consul-d.svc.smith.us-east-1.cns.smithp4ntz.us"
+        - name: NODE_EXPORTER
+          value: "1"
+        readinessProbe:
+          httpGet:
+            path: /ui
+            port: 8500
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /ui
+            port: 8500
+          initialDelaySeconds: 30
+          periodSeconds: 15
+      nodeSelector:
+        kubernetes.io/role: agent
+        beta.kubernetes.io/os: linux
+        type: virtual-kubelet
+      tolerations:
+      - key: virtual-kubelet.io/provider
+        operator: Exists
